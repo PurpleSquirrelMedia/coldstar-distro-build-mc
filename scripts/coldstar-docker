@@ -1,0 +1,73 @@
+#!/bin/bash
+# ColdStar Docker Wrapper
+# Run ColdStar without installing Python, Rust, or any dependencies
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+IMAGE_NAME="ghcr.io/purplesquirrelmedia/coldstar:latest"
+LOCAL_IMAGE="coldstar:local"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+print_banner() {
+    echo -e "${GREEN}"
+    echo "╔═══════════════════════════════════════════════════════════════╗"
+    echo "║                    COLDSTAR (Docker)                          ║"
+    echo "║         CLI Cold Wallet System - Zero Dependencies            ║"
+    echo "╚═══════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        echo -e "${RED}Error: Docker is not installed.${NC}"
+        echo "Install Docker from: https://docs.docker.com/get-docker/"
+        exit 1
+    fi
+
+    if ! docker info &> /dev/null; then
+        echo -e "${RED}Error: Docker daemon is not running.${NC}"
+        echo "Please start Docker and try again."
+        exit 1
+    fi
+}
+
+pull_or_build() {
+    # Try to pull pre-built image first
+    if docker pull "$IMAGE_NAME" 2>/dev/null; then
+        echo -e "${GREEN}✓ Using pre-built ColdStar image${NC}"
+        docker tag "$IMAGE_NAME" "$LOCAL_IMAGE"
+    else
+        echo -e "${YELLOW}Building ColdStar image locally...${NC}"
+        if [ -f "$SCRIPT_DIR/../Dockerfile" ]; then
+            docker build -t "$LOCAL_IMAGE" "$SCRIPT_DIR/.."
+        else
+            echo -e "${RED}Error: Dockerfile not found. Please run from the coldstar directory.${NC}"
+            exit 1
+        fi
+    fi
+}
+
+run_coldstar() {
+    docker run -it --rm \
+        --privileged \
+        -v /dev:/dev \
+        -e TERM=xterm-256color \
+        "$LOCAL_IMAGE" "$@"
+}
+
+# Main
+print_banner
+check_docker
+
+# Check if image exists locally
+if ! docker image inspect "$LOCAL_IMAGE" &> /dev/null; then
+    pull_or_build
+fi
+
+run_coldstar "$@"

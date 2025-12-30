@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  coldstar:
+    build: .
+    image: coldstar:latest
+    container_name: coldstar
+    stdin_open: true
+    tty: true
+    # Required for USB access
+    privileged: true
+    volumes:
+      # Mount USB devices
+      - /dev:/dev
+      # Persist wallet data (optional)
+      - coldstar-data:/app/data
+    environment:
+      - TERM=xterm-256color
+
+volumes:
+  coldstar-data:
