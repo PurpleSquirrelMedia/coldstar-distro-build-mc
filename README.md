@@ -609,5 +609,4 @@ Open-source. See the LICENSE file for details.
 ---
 
 
-#   c o l d s t a r - d i s t r o - b u i l d - m c  
- 
+#
