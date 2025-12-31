@@ -70,8 +70,36 @@ class SolanaSecureSigner:
     
     def _find_library(self) -> str:
         """Find the compiled Rust library."""
-        possible_paths = [
-            # secure_signer paths (primary) - library name is based on crate name
+        possible_paths = []
+
+        # PyInstaller bundle: check _MEIPASS first (where bundled files are extracted)
+        if getattr(sys, '_MEIPASS', None):
+            meipass = Path(sys._MEIPASS)
+            possible_paths.extend([
+                meipass / "libsolana_secure_signer.dylib",
+                meipass / "libsolana_secure_signer.so",
+                meipass / "solana_secure_signer.dll",
+            ])
+
+        # Check next to the executable (for standalone distribution)
+        if getattr(sys, 'frozen', False):
+            exe_dir = Path(sys.executable).parent
+            possible_paths.extend([
+                exe_dir / "libsolana_secure_signer.dylib",
+                exe_dir / "libsolana_secure_signer.so",
+                exe_dir / "solana_secure_signer.dll",
+            ])
+
+        # Check current working directory
+        cwd = Path.cwd()
+        possible_paths.extend([
+            cwd / "libsolana_secure_signer.dylib",
+            cwd / "libsolana_secure_signer.so",
+            cwd / "solana_secure_signer.dll",
+        ])
+
+        # secure_signer paths (primary) - library name is based on crate name
+        possible_paths.extend([
             Path(__file__).parent / "secure_signer" / "target" / "release" / "libsolana_secure_signer.so",
             Path(__file__).parent / "secure_signer" / "target" / "release" / "libsolana_secure_signer.dylib",
             Path(__file__).parent / "secure_signer" / "target" / "release" / "solana_secure_signer.dll",
@@ -82,12 +110,12 @@ class SolanaSecureSigner:
             Path(__file__).parent / "rust_signer" / "target" / "release" / "libsolana_secure_signer.so",
             Path(__file__).parent / "rust_signer" / "target" / "release" / "libsolana_secure_signer.dylib",
             Path(__file__).parent / "rust_signer" / "target" / "release" / "solana_secure_signer.dll",
-        ]
-        
+        ])
+
         for path in possible_paths:
             if path.exists():
                 return str(path)
-        
+
         raise FileNotFoundError(
             "Could not find Rust library. Please compile it first:\n"
             "  cd secure_signer && cargo build --release --features ffi"

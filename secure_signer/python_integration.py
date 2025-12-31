@@ -192,9 +192,35 @@ class FFISigner:
     
     def _find_library(self) -> str:
         """Find the shared library on the system."""
-        # Check common locations
-        candidates = [
-            # Development builds
+        candidates = []
+
+        # PyInstaller bundle: check _MEIPASS first (where bundled files are extracted)
+        if getattr(sys, '_MEIPASS', None):
+            meipass = sys._MEIPASS
+            candidates.extend([
+                os.path.join(meipass, "libsolana_secure_signer.dylib"),
+                os.path.join(meipass, "libsolana_secure_signer.so"),
+                os.path.join(meipass, "solana_secure_signer.dll"),
+            ])
+
+        # Check next to the executable (for standalone distribution)
+        if getattr(sys, 'frozen', False):
+            exe_dir = os.path.dirname(sys.executable)
+            candidates.extend([
+                os.path.join(exe_dir, "libsolana_secure_signer.dylib"),
+                os.path.join(exe_dir, "libsolana_secure_signer.so"),
+                os.path.join(exe_dir, "solana_secure_signer.dll"),
+            ])
+
+        # Check current working directory
+        candidates.extend([
+            "libsolana_secure_signer.dylib",
+            "libsolana_secure_signer.so",
+            "solana_secure_signer.dll",
+        ])
+
+        # Development builds
+        candidates.extend([
             "./target/release/libsolana_secure_signer.so",
             "./target/debug/libsolana_secure_signer.so",
             "./secure_signer/target/release/libsolana_secure_signer.so",
@@ -207,12 +233,12 @@ class FFISigner:
             # macOS
             "./target/release/libsolana_secure_signer.dylib",
             "./secure_signer/target/release/libsolana_secure_signer.dylib",
-        ]
-        
+        ])
+
         for path in candidates:
             if os.path.exists(path):
                 return path
-        
+
         raise FileNotFoundError(
             "Could not find libsolana_secure_signer. "
             "Please build with: cargo build --release"
