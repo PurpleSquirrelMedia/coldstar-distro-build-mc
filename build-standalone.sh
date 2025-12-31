@@ -1,7 +1,7 @@
 #!/bin/bash
 # ColdStar Standalone Build Script
 # Creates a fully self-contained executable with ALL dependencies bundled
-# Output: dist/coldstar (single executable, ~50-100MB)
+# Output: dist/coldstar (single executable, ~20-25MB)
 
 set -e
 

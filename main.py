@@ -11,6 +11,7 @@ B - Love U 3000
 import sys
 import os
 import tempfile
+import subprocess
 from pathlib import Path
 
 from rich.console import Console
@@ -1055,7 +1056,55 @@ class SolanaColdWalletCLI:
             pass
 
 
+def build_rust_signer():
+    """Build the Rust secure signer before running the application."""
+    console = Console()
+    console.print("🔨 Building Rust Secure Signer...", style="cyan")
+    
+    # Check if cargo is available
+    try:
+        result = subprocess.run(
+            ["cargo", "--version"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        console.print(f"✓ {result.stdout.strip()}", style="green")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        console.print("❌ Rust/Cargo is not installed!", style="red")
+        console.print("Install Rust from: https://rustup.rs/", style="yellow")
+        console.print("After installation, restart your terminal and run this script again.", style="yellow")
+        sys.exit(1)
+    
+    # Navigate to secure_signer directory
+    secure_signer_dir = Path(__file__).parent / "secure_signer"
+    if not secure_signer_dir.exists():
+        console.print(f"❌ secure_signer directory not found at {secure_signer_dir}!", style="red")
+        sys.exit(1)
+    
+    # Build release version
+    console.print("🔧 Compiling release build (this may take a few minutes)...", style="cyan")
+    try:
+        result = subprocess.run(
+            ["cargo", "build", "--release"],
+            cwd=secure_signer_dir,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        console.print("✅ BUILD SUCCESSFUL!", style="green bold")
+        console.print()
+    except subprocess.CalledProcessError as e:
+        console.print("❌ BUILD FAILED!", style="red bold")
+        console.print(e.stderr, style="red")
+        sys.exit(1)
+
+
 def main():
+    # Skip Rust build if running from PyInstaller bundle (library is already bundled)
+    if not getattr(sys, 'frozen', False):
+        build_rust_signer()
+
     cli = SolanaColdWalletCLI()
     cli.run()
 
